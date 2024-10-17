@@ -1,0 +1,164 @@
+import pygame
+import random
+
+# Инициализация Pygame
+pygame.init()
+
+# Определение цветов
+WHITE = (255, 255, 255)
+YELLOW = (255, 255, 102)
+BLACK = (0, 0, 0)
+RED = (213, 50, 80)
+GREEN = (0, 255, 0)
+BLUE = (50, 153, 213)
+
+# Размеры окна
+WIDTH = 600
+HEIGHT = 600
+
+# Установка окна
+window = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption('Змейка')
+
+# Загрузка фоновой картинки
+background_image = pygame.image.load("background.png").convert()
+background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
+
+# Определение параметров змейки
+snake_block = 15
+snake_speed = 10
+
+# Создание часов
+clock = pygame.time.Clock()
+
+# Шрифт для отображения счета
+font_style = pygame.font.SysFont("bahnschrift", 25)
+score_font = pygame.font.SysFont("comicsansms", 35)
+
+# Определение границ игрового поля
+game_field_width = 540 # Ширина игрового поля в пикселях
+game_field_height = 478 # Высота игрового поля в пикселях
+
+# Определение левого верхнего угла игрового поля
+game_field_x = (WIDTH - game_field_width) // 2
+game_field_y = (HEIGHT - game_field_height) // 2
+
+# Загрузка картинки еды
+food_image = pygame.image.load("food.png")
+food_image = pygame.transform.scale(food_image, (snake_block, snake_block)) # Приводим к размеру блока змейки
+
+# Увеличиваем размер еды (можно изменить значение)
+food_image = pygame.transform.scale(food_image, (snake_block * 1.5, snake_block * 1.5)) # Увеличиваем размер еды
+
+
+def score(score):
+  value = score_font.render("Счет: " + str(score), True, RED)
+  window.blit(value, [30, 0])
+
+
+def our_snake(snake_block, snake_list):
+  for x in snake_list:
+    # Рисуем круг вместо прямоугольника
+    pygame.draw.circle(window, BLACK, (x[0] + snake_block // 2, x[1] + snake_block // 2), snake_block // 2)
+
+
+def message(msg, color):
+    # Разделение сообщения на две строки
+    lines = msg.splitlines()
+    for i, line in enumerate(lines):
+        line_mesg = font_style.render(line, True, color)
+        line_text_rect = line_mesg.get_rect(center=(WIDTH // 2, HEIGHT // 2.5 + i * 30)) # Выравнивание строк
+        window.blit(line_mesg, line_text_rect)
+
+
+def gameLoop():
+  game_over = False
+  game_close = False
+
+  x1 = game_field_x + game_field_width // 2
+  y1 = game_field_y + game_field_height // 2
+
+  x1_change = 0
+  y1_change = 0
+
+  snake_List = []
+  Length_of_snake = 1
+
+  # Генерация еды в пределах игрового поля
+  foodx = round(random.randrange(game_field_x, game_field_x + game_field_width - snake_block) / 20.0) * 20.0
+  foody = round(random.randrange(game_field_y, game_field_y + game_field_height - snake_block) / 20.0) * 20.0
+  while not game_over:
+        while game_close == True:
+            window.fill(WHITE)
+            message("\nТы проиграл!\nНажми C, чтобы играть снова или Q, чтобы выйти", RED)
+            score(Length_of_snake - 1)
+            pygame.display.update()
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_q:
+                        game_over = True
+                        game_close = False
+                    if event.key == pygame.K_c:
+                        gameLoop()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                game_over = True
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    x1_change = -snake_block
+                    y1_change = 0
+                elif event.key == pygame.K_RIGHT:
+                    x1_change = snake_block
+                    y1_change = 0
+                elif event.key == pygame.K_UP:
+                    y1_change = -snake_block
+                    x1_change = 0
+                elif event.key == pygame.K_DOWN:
+                    y1_change = snake_block
+                    x1_change = 0
+
+        if x1 + x1_change >= game_field_x + game_field_width or x1 + x1_change < game_field_x or \
+                y1 + y1_change >= game_field_y + game_field_height or y1 + y1_change < game_field_y:
+            game_close = True
+
+        x1 += x1_change
+        y1 += y1_change
+
+        window.blit(background_image, (0, 0))
+
+        # Рисуем еду
+        window.blit(food_image, (foodx, foody))
+
+        snake_Head = [x1, y1]
+        snake_List.append(snake_Head)
+
+        if len(snake_List) > Length_of_snake:
+            del snake_List[0]
+
+        # Проверяем, съела ли змейка еду
+        if (x1 >= foodx and x1 < foodx + snake_block) and (y1 >= foody and y1 < foody + snake_block):
+            foodx = round(random.randrange(game_field_x, game_field_x + game_field_width - snake_block) / 20.0) * 20.0
+            foody = round(random.randrange(game_field_y, game_field_y + game_field_height - snake_block) / 20.0) * 20.0
+            Length_of_snake += 1
+
+        # Проверяем, не столкнулась ли змейка сама с собой
+        for x in snake_List[:-1]:
+            if x == snake_Head:
+                game_close = True
+
+        # Рисуем змейку
+        our_snake(snake_block, snake_List)
+
+        # Отображаем счет
+        score(Length_of_snake - 1)
+
+        pygame.display.update()
+
+        # Установка скорости игры
+        clock.tick(snake_speed)
+
+  pygame.quit()
+  quit()
+
+gameLoop()
